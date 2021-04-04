@@ -26,6 +26,10 @@ getVolumeLoadContainer() {
     return this._binds.volumeLoadContainer;
 }
 
+getTemporalVolumeLoadContainer() {
+    return this._binds.temporalVolumeLoadContainer;
+}
+
 getEnvmapLoadContainer() {
     return this._binds.envmapLoadContainer;
 }

@@ -16,6 +16,7 @@ constructor() {
     this._handleRendererChange = this._handleRendererChange.bind(this);
     this._handleToneMapperChange = this._handleToneMapperChange.bind(this);
     this._handleVolumeLoad = this._handleVolumeLoad.bind(this);
+    this._handleTemporalVolumeLoad = this._handleTemporalVolumeLoad.bind(this);
     this._handleEnvmapLoad = this._handleEnvmapLoad.bind(this);
 
     this._renderingContext = new RenderingContext();
@@ -44,6 +45,10 @@ constructor() {
     this._volumeLoadDialog = new VolumeLoadDialog();
     this._volumeLoadDialog.appendTo(this._mainDialog.getVolumeLoadContainer());
     this._volumeLoadDialog.addEventListener('load', this._handleVolumeLoad);
+
+    this._temporalVolumeLoadDialog = new TemporalVolumeLoadDialog();
+    this._temporalVolumeLoadDialog.appendTo(this._mainDialog.getTemporalVolumeLoadContainer());
+    this._temporalVolumeLoadDialog.addEventListener('load', this._handleTemporalVolumeLoad);
 
     this._envmapLoadDialog = new EnvmapLoadDialog();
     this._envmapLoadDialog.appendTo(this._mainDialog.getEnvmapLoadContainer());
@@ -115,6 +120,31 @@ _handleToneMapperChange(which) {
 }
 
 _handleVolumeLoad(options) {
+    if (options.type === 'file') {
+        const readerClass = this._getReaderForFileType(options.filetype);
+        if (readerClass) {
+            const loader = new BlobLoader(options.file);
+            const reader = new readerClass(loader, {
+                width  : options.dimensions.x,
+                height : options.dimensions.y,
+                depth  : options.dimensions.z,
+                bits   : options.precision
+            });
+            this._renderingContext.stopRendering();
+            this._renderingContext.setVolume(reader);
+        }
+    } else if (options.type === 'url') {
+        const readerClass = this._getReaderForFileType(options.filetype);
+        if (readerClass) {
+            const loader = new AjaxLoader(options.url);
+            const reader = new readerClass(loader);
+            this._renderingContext.stopRendering();
+            this._renderingContext.setVolume(reader);
+        }
+    }
+}
+
+_handleTemporalVolumeLoad(options) {
     if (options.type === 'file') {
         const readerClass = this._getReaderForFileType(options.filetype);
         if (readerClass) {
