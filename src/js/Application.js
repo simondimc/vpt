@@ -146,20 +146,21 @@ _handleVolumeLoad(options) {
 
 _handleTemporalVolumeLoad(options) {
     if (options.type === 'file') {
-        const readerClass = this._getReaderForFileType(options.filetype);
+        const readerClass = this._getTemporalReaderForFileType(options.filetype);
         if (readerClass) {
             const loader = new BlobLoader(options.file);
             const reader = new readerClass(loader, {
                 width  : options.dimensions.x,
                 height : options.dimensions.y,
                 depth  : options.dimensions.z,
+                frames : options.frames,
                 bits   : options.precision
             });
             this._renderingContext.stopRendering();
             this._renderingContext.setVolume(reader);
         }
     } else if (options.type === 'url') {
-        const readerClass = this._getReaderForFileType(options.filetype);
+        const readerClass = this._getTemporalReaderForFileType(options.filetype);
         if (readerClass) {
             const loader = new AjaxLoader(options.url);
             const reader = new readerClass(loader);
@@ -193,6 +194,14 @@ _getReaderForFileType(type) {
         case 'bvp'  : return BVPReader;
         case 'raw'  : return RAWReader;
         case 'zip'  : return ZIPReader;
+    }
+}
+
+_getTemporalReaderForFileType(type) {
+    switch (type) {
+        //case 'bvp'  : return TemporalBVPReader;
+        case 'raw'  : return TemporalRAWReader;
+        //case 'zip'  : return TermporalZIPReader;
     }
 }
 
