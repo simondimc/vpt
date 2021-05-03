@@ -161,7 +161,7 @@
                     {
                       "type": "button",
                       "bind": "",
-                      "label": "Start Rendering"
+                      "label": "Start rendering"
                     }
                   ]
                 },
@@ -176,7 +176,27 @@
                 },
                 {
                   "type": "field",
-                  "label": "Frame Slider:",
+                  "children": [
+                    {
+                      "type": "button",
+                      "bind": "",
+                      "label": "Play"
+                    }
+                  ]
+                },
+                {
+                  "type": "field",
+                  "children": [
+                    {
+                      "type": "button",
+                      "bind": "",
+                      "label": "Stop"
+                    }
+                  ]
+                },
+                {
+                  "type": "field",
+                  "label": "Frame slider:",
                   "children": [
                     {
                       "type": "slider",
