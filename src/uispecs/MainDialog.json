@@ -173,6 +173,34 @@
                       "bind": ""
                     }
                   ]
+                },
+                {
+                  "type": "field",
+                  "label": "Frame Slider:",
+                  "children": [
+                    {
+                      "type": "slider",
+                      "bind": "",
+                      "value": 1,
+                      "step": 1,
+                      "min": 1,
+                      "max": 10
+                    }
+                  ]
+                },
+                {
+                  "type": "field",
+                  "label": "Frame:",
+                  "children": [
+                    {
+                      "type": "spinner",
+                      "bind": "",
+                      "value": 1,
+                      "step": 1,
+                      "min": 1,
+                      "max": 10
+                    }
+                  ]
                 }
               ]
             }
