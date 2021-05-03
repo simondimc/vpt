@@ -118,6 +118,63 @@
               "type": "accordion",
               "bind": "renderingContextSettingsContainer",
               "label": "Context"
+            },
+            {
+              "type": "accordion",
+              "label": "Temporal Renderer",
+              "children": [
+                {
+                  "type": "field",
+                  "label": "Type:",
+                  "children": [
+                    {
+                      "type": "dropdown",
+                      "bind": "",
+                      "options": [
+                        {
+                          "value": "fixedtime",
+                          "label": "Fixed time",
+                          "selected": true
+                        },
+                        {
+                          "value": "fixederror",
+                          "label": "Fixed error"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "field",
+                  "label": "Value:",
+                  "children": [
+                    {
+                      "type": "spinner",
+                      "bind": "",
+                      "value": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "field",
+                  "children": [
+                    {
+                      "type": "button",
+                      "bind": "",
+                      "label": "Start Rendering"
+                    }
+                  ]
+                },
+                {
+                  "type": "field",
+                  "children": [
+                    {
+                      "type": "progress-bar",
+                      "bind": ""
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
