@@ -129,7 +129,7 @@
                   "children": [
                     {
                       "type": "dropdown",
-                      "bind": "",
+                      "bind": "temporalRendererSelect",
                       "options": [
                         {
                           "value": "fixedtime",
@@ -150,8 +150,9 @@
                   "children": [
                     {
                       "type": "spinner",
-                      "bind": "",
-                      "value": 1
+                      "bind": "temporalRendererValue",
+                      "value": 1,
+                      "min": 0
                     }
                   ]
                 },
@@ -160,7 +161,7 @@
                   "children": [
                     {
                       "type": "button",
-                      "bind": "",
+                      "bind": "startTemporalRendering",
                       "label": "Start rendering"
                     }
                   ]
@@ -170,7 +171,7 @@
                   "children": [
                     {
                       "type": "progress-bar",
-                      "bind": ""
+                      "bind": "temporalRenderingProgressBar"
                     }
                   ]
                 },
@@ -179,48 +180,28 @@
                   "children": [
                     {
                       "type": "button",
-                      "bind": "",
-                      "label": "Play"
-                    }
-                  ]
-                },
-                {
-                  "type": "field",
-                  "children": [
-                    {
-                      "type": "button",
-                      "bind": "",
+                      "bind": "stopTemporalRendering",
                       "label": "Stop"
                     }
                   ]
+                }
+              ]
+            },
+            {
+              "type": "accordion",
+              "label": "Temporal Player",
+              "children": [
+                {
+                  "type": "spacer",
+                  "height": "10px"
                 },
                 {
-                  "type": "field",
-                  "label": "Frame slider:",
-                  "children": [
-                    {
-                      "type": "slider",
-                      "bind": "",
-                      "value": 1,
-                      "step": 1,
-                      "min": 1,
-                      "max": 10
-                    }
-                  ]
+                  "type": "frame-player",
+                  "bind": "temporalRenderingPlayer"
                 },
                 {
-                  "type": "field",
-                  "label": "Frame:",
-                  "children": [
-                    {
-                      "type": "spinner",
-                      "bind": "",
-                      "value": 1,
-                      "step": 1,
-                      "min": 1,
-                      "max": 10
-                    }
-                  ]
+                  "type": "spacer",
+                  "height": "10px"
                 }
               ]
             }

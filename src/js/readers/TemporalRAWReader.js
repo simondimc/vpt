@@ -16,7 +16,7 @@ constructor(loader, options) {
     }, options);
 }
 
-readMetadata(handlers) {
+readMetadata(frame, handlers) {
     let metadata = {
         meta: {
             version: 1
@@ -29,7 +29,6 @@ readMetadata(handlers) {
                     height : this.height,
                     depth  : this.depth
                 },
-                frames: this.frames,
                 transform: {
                     matrix: [
                         1, 0, 0, 0,
@@ -40,22 +39,22 @@ readMetadata(handlers) {
                 },
                 components: 1,
                 bits: this.bits,
+                placements: []
             }
         ],
-        frames: []
+        blocks: []
     };
 
-    for (let i = 0; i < this.frames; i++) {
-        let placements = []
-        let blocks = []
-        
-        for (let j = 0; j < this.depth; j++) {
-            placements.push({
-                index: this.depth * i + j,
-                position: { x: 0, y: 0, z: this.depth * i + j }
-            });
+    for (let i = 0; i < this.depth; i++) {
+        metadata.modalities[0].placements.push({
+            index: this.depth * frame + i,
+            position: { x: 0, y: 0, z: i }
+        });
+    }
 
-            blocks.push({
+    for (let f = 0; f < this.frames; f++) {
+        for (let i = 0; i < this.depth; i++) {
+            metadata.blocks.push({
                 url: 'default',
                 format: 'raw',
                 dimensions: {
@@ -65,11 +64,6 @@ readMetadata(handlers) {
                 }
             });
         }
-
-        metadata.frames.push({
-            placements,
-            blocks
-        })        
     }
 
     handlers.onData && handlers.onData(metadata);

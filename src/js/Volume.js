@@ -33,6 +33,21 @@ readMetadata(handlers) {
     });
 }
 
+readMetadata(frame, handlers) {
+    if (!this._reader) {
+        return;
+    }
+    this.ready = false;
+    this._reader.readMetadata(frame, {
+        onData: data => {
+            this.meta = data.meta;
+            this.modalities = data.modalities;
+            this.blocks = data.blocks;
+            handlers.onData && handlers.onData();
+        }
+    });
+}
+
 readModality(modalityName, handlers) {
     if (!this._reader || !this.modalities) {
         return;

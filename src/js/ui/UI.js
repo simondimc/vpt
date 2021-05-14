@@ -18,6 +18,7 @@
 // #include Tabs.js
 // #include Textbox.js
 // #include VectorSpinner.js
+// #include FramePlayer.js
 
 class UI {
 
@@ -41,6 +42,7 @@ static get CLASS_FROM_TYPE() {
         'tabs'          : Tabs,
         'textbox'       : Textbox,
         'vector'        : VectorSpinner,
+        'frame-player'  : FramePlayer,
     };
 }
 

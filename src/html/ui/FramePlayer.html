@@ -1,0 +1,27 @@
+<!-- #package html/templates -->
+
+<!-- #include ../../css/ui/FramePlayer.css -->
+
+<div class="instantiate frame-player">
+    <div class="player-controls">
+        <input type="button" data-bind="stop" value="&#x23F9;&#xFE0E;">
+        <input type="button" data-bind="play" value="&#x23F5;&#xFE0E;">
+        <input type="button" data-bind="pause" value="&#x23F8;&#xFE0E;">
+        <div id="space-between-controls-groups-1"></div>
+        <input type="button" data-bind="prevFrame" value="<">
+        <input type="button" data-bind="nextFrame" value=">">
+        <div id="space-between-controls-groups-1"></div>
+        <input id="frame-player-fps" type="number" data-bind="fps" step="1" min="1" max="60">
+    </div>
+    <div id="space-between-controls-groups-2"></div>
+    <div class="player-controls">
+        <input id="frame-player-frame" type="number" data-bind="frameNumber">
+        <div id="space-between-controls-groups-1"></div>
+        <div class="frame-slider" data-bind="frameSlider">
+            <div class="container" data-bind="sliderContainer">
+                <div class="track"></div>
+                <div class="button" data-bind="sliderButton"></div>
+            </div>
+        </div>
+    </div>
+</div>

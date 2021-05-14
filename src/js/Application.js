@@ -18,6 +18,8 @@ constructor() {
     this._handleVolumeLoad = this._handleVolumeLoad.bind(this);
     this._handleTemporalVolumeLoad = this._handleTemporalVolumeLoad.bind(this);
     this._handleEnvmapLoad = this._handleEnvmapLoad.bind(this);
+    this._handleStartTemporalRenderingClick = this._handleStartTemporalRenderingClick.bind(this);
+    this._handleStopTemporalRenderingClick = this._handleStopTemporalRenderingClick.bind(this);
 
     this._renderingContext = new RenderingContext();
     this._canvas = this._renderingContext.getCanvas();
@@ -74,6 +76,9 @@ constructor() {
     this._mainDialog.addEventListener('tonemapperchange', this._handleToneMapperChange);
     this._mainDialog.trigger('rendererchange', this._mainDialog.getSelectedRenderer());
     this._mainDialog.trigger('tonemapperchange', this._mainDialog.getSelectedToneMapper());
+
+    this._mainDialog.addEventListener('startTemporalRenderingClick', this._handleStartTemporalRenderingClick);
+    this._mainDialog.addEventListener('stopTemporalRenderingClick', this._handleStopTemporalRenderingClick);
 }
 
 _handleFileDrop(e) {
@@ -222,6 +227,14 @@ _getDialogForToneMapper(toneMapper) {
         case 'reinhard' : return ReinhardToneMapperDialog;
         case 'artistic' : return ArtisticToneMapperDialog;
     }
+}
+
+_handleStartTemporalRenderingClick({type, value, progressBarRef, player}) {
+    this._renderingContext.temporalSetupAndStartRendering({type, value, progressBarRef, player});
+}
+
+_handleStopTemporalRenderingClick() {
+    this._renderingContext.temporalStopRendering();
 }
 
 }

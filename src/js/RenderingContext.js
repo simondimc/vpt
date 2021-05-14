@@ -40,6 +40,20 @@ constructor(options) {
     this._translation = new Vector(0, 0, 0);
     this._isTransformationDirty = true;
     this._updateMvpInverseMatrix();
+
+    this._isTemporalRendering = false;
+    this._temporalPlayer = null;
+    this._temporalPlayerIsPlaying = false;
+    this._temporalPlayerFrame = 0;
+    this._temporalPlayerFps = 10;
+
+    this._playerStop = this._playerStop.bind(this);
+    this._playerPlay = this._playerPlay.bind(this);
+    this._playerPause = this._playerPause.bind(this);
+    this._playerPrevFrame = this._playerPrevFrame.bind(this);
+    this._playerNextFrame = this._playerNextFrame.bind(this);
+    this._playerFpsChange = this._playerFpsChange.bind(this);
+    this._playerFrameChange = this._playerFrameChange.bind(this);
 }
 
 // ============================ WEBGL SUBSYSTEM ============================ //
@@ -110,19 +124,24 @@ resize(width, height) {
 
 setVolume(reader) {
     this._volume = new Volume(this._gl, reader);
-    this._volume.readMetadata({
-        onData: () => {
-            this._volume.readModality('default', {
-                onLoad: () => {
-                    this._volume.setFilter(this._filter);
-                    if (this._renderer) {
-                        this._renderer.setVolume(this._volume);
-                        this.startRendering();
+
+    if (reader instanceof TemporalRAWReader) {
+        this._temporalRenderFirstFrame()
+    } else {
+        this._volume.readMetadata({
+            onData: () => {
+                this._volume.readModality('default', {
+                    onLoad: () => {
+                        this._volume.setFilter(this._filter);
+                        if (this._renderer) {
+                            this._renderer.setVolume(this._volume);
+                            this.startRendering();
+                        }
                     }
-                }
-            });
-        }
-    });
+                });
+            }
+        });
+    }
 }
 
 setEnvironmentMap(image) {
@@ -217,7 +236,9 @@ _render() {
         return;
     }
 
-    this._updateMvpInverseMatrix();
+    if (!this._isTemporalRendering) {
+        this._updateMvpInverseMatrix();
+    }
 
     this._renderer.render();
     this._toneMapper.render();
@@ -304,5 +325,253 @@ _getToneMapperClass(toneMapper) {
         case 'artistic' : return ArtisticToneMapper;
     }
 }
+
+_temporalRenderFirstFrame() {
+    this.stopRendering();
+    this._volume.readMetadata(0, {
+        onData: () => {
+            this._volume.readModality('default', {
+                onLoad: () => {
+                    this._volume.setFilter(this._filter);
+                    if (this._renderer) {
+                        this._renderer.setVolume(this._volume);
+                        this.startRendering();
+                    }
+                }
+            });
+        }
+    });
+}
+
+temporalSetupAndStartRendering({type, value, progressBarRef, player}) {
+    this._temporalImages = []
+    this._isTemporalRendering = true;
+    this._temporalPlayerFps = player.getFps();
+    this._temporalPlayer = player;
+    this._temporalPlayer.setMaxValue(this._volume._reader.frames);
+
+    this._temporalPlayer.addEventListener('stop', this._playerStop);
+    this._temporalPlayer.addEventListener('play', this._playerPlay);
+    this._temporalPlayer.addEventListener('pause', this._playerPause);
+    this._temporalPlayer.addEventListener('prevFrame', this._playerPrevFrame);
+    this._temporalPlayer.addEventListener('nextFrame', this._playerNextFrame);
+    this._temporalPlayer.addEventListener('fpsChange', this._playerFpsChange);
+    this._temporalPlayer.addEventListener('frameChange', this._playerFrameChange);
+
+    if (type == "fixederror") {
+        
+    } else {
+        this._renderFrameFixedTime(0, this._volume._reader.frames, value * 1000, progressBarRef)
+    }
+}
+
+temporalStopRendering() {
+    this._isTemporalRendering = false;
+    this._temporalRenderFirstFrame();
+
+    if (this._temporalPlayer) {
+        this._temporalPlayer.setFrame(1);
+
+        this._temporalPlayer.setEnabled(false);
+
+        this._temporalPlayer.removeEventListener('stop', this._playerStop);
+        this._temporalPlayer.removeEventListener('play', this._playerPlay);
+        this._temporalPlayer.removeEventListener('pause', this._playerPause);
+        this._temporalPlayer.removeEventListener('prevFrame', this._playerPrevFrame);
+        this._temporalPlayer.removeEventListener('nextFrame', this._playerNextFrame);
+        this._temporalPlayer.removeEventListener('fpsChange', this._playerFpsChange);
+        this._temporalPlayer.removeEventListener('frameChange', this._playerFrameChange);
+    }
+}
+
+_playerStop() {
+    console.log("stop inside rendering context")
+    this._temporalPlayerIsPlaying = false;
+    this._temporalPlayer.setFrame(1);
+    this._temporalPlayerFrame = 0;
+}
+
+_playerPlay() {
+    console.log("play inside rendering context")
+    if (this._temporalPlayerIsPlaying == false) {
+        this._playTemporalImages();
+    }
+}
+
+_playerPause() {
+    console.log("pause inside rendering context")
+    this._temporalPlayerIsPlaying = false;
+}
+
+_playerPrevFrame() {
+    console.log("prevFrame inside rendering context")
+    if (this._temporalPlayerIsPlaying == false) {
+        this._drawTemporalImage(this._temporalPlayerFrame - 1, this._volume._reader.frames)
+    }
+}
+
+_playerNextFrame() {
+    console.log("nextFrame inside rendering context")
+    if (this._temporalPlayerIsPlaying == false) {
+        this._drawTemporalImage(this._temporalPlayerFrame + 1, this._volume._reader.frames)
+    }
+}
+
+_playerFpsChange(e) {
+    console.log("fpsChange inside rendering context")
+    this._temporalPlayerFps = e.detail.fps;
+}
+
+_playerFrameChange(e) {
+    if (this._temporalPlayerIsPlaying == false && this._temporalPlayerFrame != e.detail.frame) {
+        console.log("frameChange inside rendering context", this._temporalPlayerFrame, e.detail.frame)
+        this._drawTemporalImage(e.detail.frame, this._volume._reader.frames)
+    }
+}
+
+_renderFrameFixedTime(frame, maxFrames, time, progressBarRef) {
+    if (this._isTemporalRendering == false) {
+        progressBarRef.setProgress(0);
+        return;
+    }
+
+    if (frame >= maxFrames) {
+        this._temporalPlayer.play();
+        return;
+    }
+
+    this.stopRendering();
+
+    this._volume.readMetadata(frame, {
+        onData: () => {
+            this._volume.readModality('default', {
+                onLoad: () => {
+                    this._volume.setFilter(this._filter);
+                    if (this._renderer) {
+                        this._renderer.setVolume(this._volume);
+                        this.startRendering();
+                    }
+                }
+            });
+        }
+    });
+
+    let that = this;
+    setTimeout(function () {
+        console.log("render", frame)
+
+        let width = that._gl.drawingBufferWidth;
+        let height = that._gl.drawingBufferHeight;
+
+        let pixels = new Uint8Array(width * height * 4);
+        that._gl.readPixels(0, 0, width, height, that._gl.RGBA, that._gl.UNSIGNED_BYTE, pixels);
+
+        let image = {
+            width: width,
+            height: height,
+            pixels: pixels
+        }
+
+        that._temporalImages.push(image);
+
+        progressBarRef.setProgress(((frame + 1) / maxFrames) * 100);
+
+        that._renderFrameFixedTime(frame + 1, maxFrames, time, progressBarRef);
+    }, time)
+}
+
+_playTemporalImages() {
+    this.stopRendering();
+
+    this._temporalPlayerIsPlaying = true;
+    this._temporalPlayer.setEnabled(true);
+
+    this._drawTemporalImages(this._temporalPlayerFrame, this._volume._reader.frames)
+}
+
+_drawTemporalImages(frame, maxFrames) {
+    if (this._isTemporalRendering == false || this._temporalPlayerIsPlaying == false) {
+        return;
+    }
+
+    if (frame >= maxFrames) {
+        frame = 0;
+    }
+
+    this._temporalPlayerFrame = frame;
+
+    console.log("play", frame)
+
+    this._temporalPlayer.setFrame(frame + 1);
+
+    let image = this._temporalImages[frame];
+
+    this._renderTemporalFrame(image);
+
+    let that = this;
+    setTimeout(function() {
+        requestAnimationFrame(function() {
+            that._drawTemporalImages(frame + 1, maxFrames)
+        });
+    }, (1 / this._temporalPlayerFps) * 1000);
+}
+
+_drawTemporalImage(frame, maxFrames) {
+    if (frame >= maxFrames) {
+        frame = 0;
+    }
+
+    if (frame < 0) {
+        frame = maxFrames - 1;
+    }
+
+    this._temporalPlayerFrame = frame;
+
+    console.log("play", frame)
+
+    this._temporalPlayer.setFrame(frame + 1);
+
+    let image = this._temporalImages[frame];
+
+    this._renderTemporalFrame(image);
+}
+
+_renderTemporalFrame(image) {
+    const gl = this._gl;
+    if (!gl) {
+        return;
+    }
+
+    let frameTexture = WebGL.createTexture(gl, {
+        width          : image.width,
+        height         : image.height,
+        data           : image.pixels,
+        format         : gl.RGBA,
+        internalFormat : gl.RGBA,
+        type           : gl.UNSIGNED_BYTE,
+        wrapS          : gl.CLAMP_TO_EDGE,
+        wrapT          : gl.CLAMP_TO_EDGE,
+        min            : gl.LINEAR,
+        max            : gl.LINEAR
+    });
+
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+    const program = this._program;
+    gl.useProgram(program.program);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this._clipQuad);
+    const aPosition = program.attributes.aPosition;
+    gl.enableVertexAttribArray(aPosition);
+    gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, frameTexture);
+    gl.uniform1i(program.uniforms.uTexture, 0);
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+
+    gl.disableVertexAttribArray(aPosition);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+}
+
 
 }

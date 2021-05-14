@@ -1,0 +1,128 @@
+/* #package css/main */
+
+.frame-player input[type=button] {
+    --enabled-background-color  : #f3f3f3;
+    --hover-background-color    : #eaeaea;
+    --disabled-background-color : #f3f3f3;
+    --enabled-border-color      : #aaaaaa;
+    --disabled-border-color     : #cccccc;
+    --enabled-text-color        : #333333;
+    --disabled-text-color       : #aaaaaa;
+}
+
+.frame-player input[type=button] {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    margin: 2px;
+
+    cursor: pointer;
+    box-sizing: border-box;
+    border: 1px solid var(--enabled-border-color);
+    background: var(--enabled-background-color);
+    color: var(--enabled-text-color);
+}
+
+.frame-player input[type=button]:hover {
+    background: var(--hover-background-color);
+}
+
+.frame-player.disabled input[type=button] {
+    border: 1px solid var(--disabled-border-color);
+    background: var(--disabled-background-color);
+    color: var(--disabled-text-color);
+}
+
+#space-between-controls-groups-1 {
+    display: inline-block;
+    width: 5px;
+}
+
+#space-between-controls-groups-2 {
+    height: 5px;
+}
+
+.frame-player > .player-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.frame-player input[type=number] {
+    --enabled-background-color  : #ffffff;
+    --disabled-background-color : #f3f3f3;
+    --enabled-border-color      : #aaaaaa;
+    --disabled-border-color     : #cccccc;
+    --enabled-text-color        : #333333;
+    --disabled-text-color       : #aaaaaa;
+}
+
+.frame-player input[type=number] {
+    height: 24px;
+    margin: 0;
+    padding: 3px;
+    background-color: var(--enabled-background-color);
+    border: 1px solid var(--enabled-border-color);
+    color: var(--enabled-text-color);
+    box-sizing: border-box;
+    display: block;
+}
+
+.frame-player.disabled input[type=number] {
+    background-color: var(--disabled-background-color);
+    border-color: var(--disabled-border-color);
+    color: var(--disabled-text-color);
+}
+
+.frame-player #frame-player-fps {
+    width: 40px;
+}
+
+.frame-player #frame-player-frame {
+    width: 50px;
+}
+
+.frame-player .frame-slider {
+    --height         : 18px;
+    --button-width   : 10px;
+    --button-height  : 20px;
+    --track-height   : 2px;
+    --enabled-color  : #2196f3;
+    --disabled-color : #cccccc;
+}
+
+.frame-player .frame-slider {
+    width: 196px;
+    height: var(--height);
+
+    cursor: pointer;
+}
+
+.frame-player .frame-slider .container {
+    position: relative;
+    width: calc(100% - var(--button-width));
+    height: 100%;
+    margin: auto;
+}
+
+.frame-player .frame-slider .track {
+    position: absolute;
+    top: calc((var(--height) - var(--track-height) - 4px) / 2);
+    width: 100%;
+    height: var(--track-height);
+
+    border: 2px solid var(--enabled-color);
+}
+
+.frame-player .frame-slider .button {
+    position: absolute;
+    width: var(--button-width);
+    height: var(--button-height);
+    left: calc(0% - var(--button-width) / 2);
+    top: calc((var(--height) - var(--button-height)) / 2);
+
+    border: 2px solid var(--enabled-color);
+    background-color: white;
+    border-radius: 0;
+    box-sizing: border-box;
+}
