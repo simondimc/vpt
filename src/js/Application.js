@@ -77,8 +77,6 @@ constructor() {
     this._mainDialog.trigger('rendererchange', this._mainDialog.getSelectedRenderer());
     this._mainDialog.trigger('tonemapperchange', this._mainDialog.getSelectedToneMapper());
 
-    this._mainDialog.addEventListener('startTemporalRenderingClick', this._handleStartTemporalRenderingClick);
-    this._mainDialog.addEventListener('stopTemporalRenderingClick', this._handleStopTemporalRenderingClick);
 }
 
 _handleFileDrop(e) {
@@ -125,6 +123,8 @@ _handleToneMapperChange(which) {
 }
 
 _handleVolumeLoad(options) {
+    this._hideTemporalRenderingDialog();
+
     if (options.type === 'file') {
         const readerClass = this._getReaderForFileType(options.filetype);
         if (readerClass) {
@@ -150,6 +150,8 @@ _handleVolumeLoad(options) {
 }
 
 _handleTemporalVolumeLoad(options) {
+    this._showTemporalRenderingDialog();
+
     if (options.type === 'file') {
         const readerClass = this._getTemporalReaderForFileType(options.filetype);
         if (readerClass) {
@@ -235,6 +237,27 @@ _handleStartTemporalRenderingClick({type, value, progressBarRef, player}) {
 
 _handleStopTemporalRenderingClick() {
     this._renderingContext.temporalStopRendering();
+}
+
+_showTemporalRenderingDialog() {
+    if (this._temporalRenderingDialog) {
+        return;
+    } else {
+        const container = this._mainDialog.getTemporalRenderingContainer();
+        this._temporalRenderingDialog = new TemporalRenderingDialog();
+        this._temporalRenderingDialog.appendTo(container);
+
+        this._temporalRenderingDialog.addEventListener('startTemporalRenderingClick', this._handleStartTemporalRenderingClick);
+        this._temporalRenderingDialog.addEventListener('stopTemporalRenderingClick', this._handleStopTemporalRenderingClick);
+    }
+}
+
+_hideTemporalRenderingDialog() {
+    if (this._temporalRenderingDialog) {
+        this._renderingContext.temporalStopRendering();
+        this._temporalRenderingDialog.destroy();
+        this._temporalRenderingDialog = null;
+    }
 }
 
 }

@@ -33,12 +33,12 @@ readMetadata(handlers) {
     });
 }
 
-readMetadata(frame, handlers) {
+readFrameMetadata(frame, handlers) {
     if (!this._reader) {
         return;
     }
     this.ready = false;
-    this._reader.readMetadata(frame, {
+    this._reader.readFrameMetadata(frame, {
         onData: data => {
             this.meta = data.meta;
             this.modalities = data.modalities;

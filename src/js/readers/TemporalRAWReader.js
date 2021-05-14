@@ -16,7 +16,7 @@ constructor(loader, options) {
     }, options);
 }
 
-readMetadata(frame, handlers) {
+readFrameMetadata(frame, handlers) {
     let metadata = {
         meta: {
             version: 1

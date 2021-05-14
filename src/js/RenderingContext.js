@@ -328,7 +328,7 @@ _getToneMapperClass(toneMapper) {
 
 _temporalRenderFirstFrame() {
     this.stopRendering();
-    this._volume.readMetadata(0, {
+    this._volume.readFrameMetadata(0, {
         onData: () => {
             this._volume.readModality('default', {
                 onLoad: () => {
@@ -367,6 +367,8 @@ temporalSetupAndStartRendering({type, value, progressBarRef, player}) {
 
 temporalStopRendering() {
     this._isTemporalRendering = false;
+    this._temporalPlayerIsPlaying = false;
+    this._temporalPlayerFrame = 0;
     this._temporalRenderFirstFrame();
 
     if (this._temporalPlayer) {
@@ -442,7 +444,7 @@ _renderFrameFixedTime(frame, maxFrames, time, progressBarRef) {
 
     this.stopRendering();
 
-    this._volume.readMetadata(frame, {
+    this._volume.readFrameMetadata(frame, {
         onData: () => {
             this._volume.readModality('default', {
                 onLoad: () => {

@@ -1,0 +1,95 @@
+// #package uispecs
+
+// #section TemporalRenderingDialog
+
+{
+  "type": "panel",
+  "children": [
+    {
+      "type": "accordion",
+      "label": "Temporal Renderer",
+      "children": [
+        {
+          "type": "field",
+          "label": "Type:",
+          "children": [
+            {
+              "type": "dropdown",
+              "bind": "temporalRendererSelect",
+              "options": [
+                {
+                  "value": "fixedtime",
+                  "label": "Fixed time",
+                  "selected": true
+                },
+                {
+                  "value": "fixederror",
+                  "label": "Fixed error"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "label": "Value:",
+          "children": [
+            {
+              "type": "spinner",
+              "bind": "temporalRendererValue",
+              "value": 1,
+              "min": 0
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "children": [
+            {
+              "type": "button",
+              "bind": "startTemporalRendering",
+              "label": "Start rendering"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "children": [
+            {
+              "type": "progress-bar",
+              "bind": "temporalRenderingProgressBar"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "children": [
+            {
+              "type": "button",
+              "bind": "stopTemporalRendering",
+              "label": "Stop"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "accordion",
+      "label": "Temporal Player",
+      "children": [
+        {
+          "type": "spacer",
+          "height": "10px"
+        },
+        {
+          "type": "frame-player",
+          "bind": "temporalRenderingPlayer"
+        },
+        {
+          "type": "spacer",
+          "height": "10px"
+        }
+      ]
+    }
+  ]
+}
