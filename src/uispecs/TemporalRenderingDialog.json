@@ -19,12 +19,12 @@
               "options": [
                 {
                   "value": "fixedtime",
-                  "label": "Fixed time",
+                  "label": "Fixed time (seconds)",
                   "selected": true
                 },
                 {
                   "value": "fixederror",
-                  "label": "Fixed error"
+                  "label": "Fixed error (60 RMSE)"
                 }
               ]
             }

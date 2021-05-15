@@ -261,6 +261,93 @@ _render() {
     gl.bindTexture(gl.TEXTURE_2D, null);
 }
 
+_renderLoopFixedError(error, frames, callback) {
+    if (this._isTemporalRendering == false) {
+        return;
+    }
+
+    this._render()
+    let image = this._captureImageFromColorBuffer();
+
+    if (frames.length < 60) {
+        frames.push(this._rgba2gray(image));
+    } else {
+        frames.shift();
+        frames.push(this._rgba2gray(image));
+
+        let rmse = this._rmseOfFrames(frames);
+        //console.log(rmse)
+        if (rmse <= error) {
+            callback(image);
+            return;
+        }
+    }
+
+    let that = this;
+    requestAnimationFrame(function() {
+        that._renderLoopFixedError(error, frames, callback);
+    });
+}
+
+_rgba2gray(image) {
+    let grayImage = {
+        width: image.width,
+        height: image.height
+    };
+
+    let grayPixels = [];
+    let pi = 0;
+    while (pi < image.pixels.length) {
+        let r = image.pixels[pi];
+        let g = image.pixels[pi + 1];
+        let b = image.pixels[pi + 2];
+        let a = image.pixels[pi + 3] / 255;
+
+        let rb = 255;
+        let gb = 255;
+        let bb = 255;
+
+        let r2 = (1 - a) * rb + a * r;
+        let g2 = (1 - a) * gb + a * g;
+        let b2 = (1 - a) * bb + a * b;
+
+        let gs = (r2 + g2 + b2) / 3;
+
+        grayPixels.push(gs)
+
+        pi += 4;
+    }
+
+    grayImage.pixels = grayPixels;
+
+    return grayImage;
+}
+
+_rmseOfFrames(frames) {
+    let avgFrame = [];
+
+    for (let pi = 0; pi < frames[0].pixels.length; pi++) {
+        let sum = 0;
+        for (let fi = 0; fi < frames.length; fi++) {
+            sum += frames[fi].pixels[pi];
+        }
+        let avg = sum / frames.length;
+        avgFrame.push(avg)
+    }
+
+    let rmse = 0;
+
+    for (let fi = 0; fi < frames.length; fi++) {
+        for (let pi = 0; pi < frames[fi].pixels.length; pi++) {
+            rmse += Math.pow(frames[fi].pixels[pi] - avgFrame[pi], 2);
+        }
+    }
+
+    rmse = Math.sqrt(rmse / frames.length);
+
+    return rmse;
+}
+
 getScale() {
     return this._scale;
 }
@@ -344,6 +431,8 @@ _temporalRenderFirstFrame() {
 }
 
 temporalSetupAndStartRendering({type, value, progressBarRef, player}) {
+    this.stopRendering();
+
     this._temporalImages = []
     this._isTemporalRendering = true;
     this._temporalPlayerFps = player.getFps();
@@ -359,7 +448,7 @@ temporalSetupAndStartRendering({type, value, progressBarRef, player}) {
     this._temporalPlayer.addEventListener('frameChange', this._playerFrameChange);
 
     if (type == "fixederror") {
-        
+        this._renderFrameFixedError(0, this._volume._reader.frames, value, progressBarRef)
     } else {
         this._renderFrameFixedTime(0, this._volume._reader.frames, value * 1000, progressBarRef)
     }
@@ -462,17 +551,7 @@ _renderFrameFixedTime(frame, maxFrames, time, progressBarRef) {
     setTimeout(function () {
         console.log("render", frame)
 
-        let width = that._gl.drawingBufferWidth;
-        let height = that._gl.drawingBufferHeight;
-
-        let pixels = new Uint8Array(width * height * 4);
-        that._gl.readPixels(0, 0, width, height, that._gl.RGBA, that._gl.UNSIGNED_BYTE, pixels);
-
-        let image = {
-            width: width,
-            height: height,
-            pixels: pixels
-        }
+        let image = that._captureImageFromColorBuffer();
 
         that._temporalImages.push(image);
 
@@ -480,6 +559,54 @@ _renderFrameFixedTime(frame, maxFrames, time, progressBarRef) {
 
         that._renderFrameFixedTime(frame + 1, maxFrames, time, progressBarRef);
     }, time)
+}
+
+_captureImageFromColorBuffer() {
+    let width = this._gl.drawingBufferWidth;
+    let height = this._gl.drawingBufferHeight;
+
+    let pixels = new Uint8Array(width * height * 4);
+    this._gl.readPixels(0, 0, width, height, this._gl.RGBA, this._gl.UNSIGNED_BYTE, pixels);
+
+    let image = {
+        width: width,
+        height: height,
+        pixels: pixels
+    }
+
+    return image;
+}
+
+_renderFrameFixedError(frame, maxFrames, error, progressBarRef) {
+    if (this._isTemporalRendering == false) {
+        progressBarRef.setProgress(0);
+        return;
+    }
+
+    if (frame >= maxFrames) {
+        this._temporalPlayer.play();
+        return;
+    }
+
+    this._volume.readFrameMetadata(frame, {
+        onData: () => {
+            this._volume.readModality('default', {
+                onLoad: () => {
+                    this._volume.setFilter(this._filter);
+                    if (this._renderer) {
+                        this._renderer.setVolume(this._volume);
+                        let that = this;
+                        this._renderLoopFixedError(error, [], function(image) {
+                            console.log("render", frame)
+                            that._temporalImages.push(image);
+                            progressBarRef.setProgress(((frame + 1) / maxFrames) * 100);
+                            that._renderFrameFixedError(frame + 1, maxFrames, error, progressBarRef);
+                        })
+                    }
+                }
+            });
+        }
+    });
 }
 
 _playTemporalImages() {
