@@ -24,7 +24,7 @@
                 },
                 {
                   "value": "fixederror",
-                  "label": "Fixed error (60 RMSE)"
+                  "label": "Fixed error (10 RMSE)"
                 }
               ]
             }

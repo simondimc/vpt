@@ -104,6 +104,10 @@ _initGL() {
     }, MIXINS).quad;
 
     this._clipQuad = WebGL.createClipQuad(gl);
+
+    this._rmseOfImagesProgram = WebGL.buildPrograms(gl, {
+        rmse: SHADERS.rmseOfImages
+    }, MIXINS).rmse;
 }
 
 _webglcontextlostHandler(e) {
@@ -269,11 +273,11 @@ _renderLoopFixedError(error, frames, callback) {
     this._render()
     let image = this._captureImageFromColorBuffer();
 
-    if (frames.length < 60) {
-        frames.push(this._rgba2gray(image));
+    if (frames.length < 10) {
+        frames.push(image);
     } else {
         frames.shift();
-        frames.push(this._rgba2gray(image));
+        frames.push(image);
 
         let rmse = this._rmseOfFrames(frames);
         //console.log(rmse)
@@ -289,61 +293,76 @@ _renderLoopFixedError(error, frames, callback) {
     });
 }
 
-_rgba2gray(image) {
-    let grayImage = {
-        width: image.width,
-        height: image.height
-    };
+_rmseOfFrames(frames) {
+    const gl = this._gl;
+    if (!gl) {
+        return 0;
+    }
 
-    let grayPixels = [];
+    let rmseTexture = WebGL.createTexture(gl, {
+        width          : frames[0].width,
+        height         : frames[0].height,
+        data           : null,
+        format         : gl.RGBA,
+        internalFormat : gl.RGBA,
+        type           : gl.UNSIGNED_BYTE,
+        wrapS          : gl.CLAMP_TO_EDGE,
+        wrapT          : gl.CLAMP_TO_EDGE,
+        min            : gl.LINEAR,
+    });
+
+    let framesTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_3D, framesTexture);
+
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    gl.texStorage3D(gl.TEXTURE_3D, 1, gl.RGBA8, frames[0].width, frames[0].height, frames.length);
+
+    for (let fi = 0; fi < frames.length; fi++) {
+        gl.bindTexture(gl.TEXTURE_3D, framesTexture);
+        gl.texSubImage3D(gl.TEXTURE_3D, 0,
+                    0, 0, fi,
+                    frames[fi].width, frames[fi].height, 1,
+                    gl.RGBA, gl.UNSIGNED_BYTE, frames[fi].pixels);
+    }
+
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+
+    const attachmentPoint = gl.COLOR_ATTACHMENT0;
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, rmseTexture, 0);
+
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+    const program = this._rmseOfImagesProgram;
+    gl.useProgram(program.program);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this._clipQuad);
+    const aPosition = program.attributes.aPosition;
+    gl.enableVertexAttribArray(aPosition);
+    gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_3D, framesTexture);
+    gl.uniform1i(program.uniforms.uTexture, 0);
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+
+    gl.disableVertexAttribArray(aPosition);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindTexture(gl.TEXTURE_3D, null);
+
+    let rmseImage = this._captureImageFromColorBuffer();
+
+    let rmse = 0;
     let pi = 0;
-    while (pi < image.pixels.length) {
-        let r = image.pixels[pi];
-        let g = image.pixels[pi + 1];
-        let b = image.pixels[pi + 2];
-        let a = image.pixels[pi + 3] / 255;
-
-        let rb = 255;
-        let gb = 255;
-        let bb = 255;
-
-        let r2 = (1 - a) * rb + a * r;
-        let g2 = (1 - a) * gb + a * g;
-        let b2 = (1 - a) * bb + a * b;
-
-        let gs = (r2 + g2 + b2) / 3;
-
-        grayPixels.push(gs)
-
+    while (pi < rmseImage.pixels.length) {
+        let rmsePixel = rmseImage.pixels[pi];
+        rmse += rmsePixel;
         pi += 4;
     }
 
-    grayImage.pixels = grayPixels;
-
-    return grayImage;
-}
-
-_rmseOfFrames(frames) {
-    let avgFrame = [];
-
-    for (let pi = 0; pi < frames[0].pixels.length; pi++) {
-        let sum = 0;
-        for (let fi = 0; fi < frames.length; fi++) {
-            sum += frames[fi].pixels[pi];
-        }
-        let avg = sum / frames.length;
-        avgFrame.push(avg)
-    }
-
-    let rmse = 0;
-
-    for (let fi = 0; fi < frames.length; fi++) {
-        for (let pi = 0; pi < frames[fi].pixels.length; pi++) {
-            rmse += Math.pow(frames[fi].pixels[pi] - avgFrame[pi], 2);
-        }
-    }
-
-    rmse = Math.sqrt(rmse / frames.length);
+    rmse /= (rmseImage.width * rmseImage.height);
 
     return rmse;
 }
@@ -681,7 +700,6 @@ _renderTemporalFrame(image) {
         wrapS          : gl.CLAMP_TO_EDGE,
         wrapT          : gl.CLAMP_TO_EDGE,
         min            : gl.LINEAR,
-        max            : gl.LINEAR
     });
 
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
