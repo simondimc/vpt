@@ -1,6 +1,6 @@
 // #package glsl/shaders
 
-// #section rmseOfImages/vertex
+// #section rmse/vertex
 
 #version 300 es
 precision mediump float;
@@ -13,7 +13,7 @@ void main() {
     vFragmentPosition = (aPosition + vec2(1.0, 1.0)) * 0.5;
 }
 
-// #section rmseOfImages/fragment
+// #section rmse/fragment
 
 #version 300 es
 precision mediump float;
@@ -29,26 +29,9 @@ void main() {
     float gray[10];
 
     for (int i = 0; i < images; i++) {
-        vec4 image = texture(uTexture, vec3(vFragmentPosition, float(i) / float(images)));
-
-        float r = image.r;
-        float g = image.g;
-        float b = image.b;
-        float a = image.a;
-
-        float rb = 1.0;
-        float gb = 1.0;
-        float bb = 1.0;
-
-        float r2 = (1.0 - a) * rb + a * r;
-        float g2 = (1.0 - a) * gb + a * g;
-        float b2 = (1.0 - a) * bb + a * b;
-
-        float gs = (r2 + g2 + b2) / 3.0;
-
-        gray[i] = gs;
-
-        avg += gs;
+        vec4 pixel = texture(uTexture, vec3(vFragmentPosition, float(i) / float(images)) * 2.0);
+        gray[i] = pixel.r;
+        avg += pixel.r;
     }
 
     avg /= float(images);

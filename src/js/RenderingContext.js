@@ -105,9 +105,13 @@ _initGL() {
 
     this._clipQuad = WebGL.createClipQuad(gl);
 
-    this._rmseOfImagesProgram = WebGL.buildPrograms(gl, {
-        rmse: SHADERS.rmseOfImages
+    this._rmseProgram = WebGL.buildPrograms(gl, {
+        rmse: SHADERS.rmse
     }, MIXINS).rmse;
+
+    this._grayscaleProgram = WebGL.buildPrograms(gl, {
+        grayscale: SHADERS.grayscale
+    }, MIXINS).grayscale;
 }
 
 _webglcontextlostHandler(e) {
@@ -274,13 +278,13 @@ _renderLoopFixedError(error, frames, callback) {
     let image = this._captureImageFromColorBuffer();
 
     if (frames.length < 10) {
-        frames.push(image);
+        frames.push(this._downsizeAndGrayscaleImage(image));
     } else {
         frames.shift();
-        frames.push(image);
+        frames.push(this._downsizeAndGrayscaleImage(image));
 
         let rmse = this._rmseOfFrames(frames);
-        //console.log(rmse)
+        console.log(rmse)
         if (rmse <= error) {
             callback(image);
             return;
@@ -291,6 +295,73 @@ _renderLoopFixedError(error, frames, callback) {
     requestAnimationFrame(function() {
         that._renderLoopFixedError(error, frames, callback);
     });
+}
+
+_downsizeAndGrayscaleImage(image) {
+    const gl = this._gl;
+    if (!gl) {
+        return 0;
+    }
+
+    let outputTexture = WebGL.createTexture(gl, {
+        width          : image.width / 2,
+        height         : image.height / 2,
+        data           : null,
+        format         : gl.RGBA,
+        internalFormat : gl.RGBA,
+        type           : gl.UNSIGNED_BYTE,
+        wrapS          : gl.CLAMP_TO_EDGE,
+        wrapT          : gl.CLAMP_TO_EDGE,
+        min            : gl.LINEAR,
+    });
+
+    let inputTexture = WebGL.createTexture(gl, {
+        width          : image.width,
+        height         : image.height,
+        data           : image.pixels,
+        format         : gl.RGBA,
+        internalFormat : gl.RGBA,
+        type           : gl.UNSIGNED_BYTE,
+        wrapS          : gl.CLAMP_TO_EDGE,
+        wrapT          : gl.CLAMP_TO_EDGE,
+        min            : gl.LINEAR,
+    });
+
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+
+    const attachmentPoint = gl.COLOR_ATTACHMENT0;
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, outputTexture, 0);
+
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+    const program = this._grayscaleProgram;
+    gl.useProgram(program.program);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this._clipQuad);
+    const aPosition = program.attributes.aPosition;
+    gl.enableVertexAttribArray(aPosition);
+    gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, inputTexture);
+    gl.uniform1i(program.uniforms.uTexture, 0);
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+
+    gl.disableVertexAttribArray(aPosition);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+
+    let width = image.width / 2;
+    let height = image.height / 2;
+    
+    let pixels = new Uint8Array(width * height * 4);
+    this._gl.readPixels(0, 0, width, height, this._gl.RGBA, this._gl.UNSIGNED_BYTE, pixels);
+
+    image = {
+        width: width,
+        height: height,
+        pixels: pixels
+    }
+
+    return image;
 }
 
 _rmseOfFrames(frames) {
@@ -337,7 +408,7 @@ _rmseOfFrames(frames) {
     gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, rmseTexture, 0);
 
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-    const program = this._rmseOfImagesProgram;
+    const program = this._rmseProgram;
     gl.useProgram(program.program);
     gl.bindBuffer(gl.ARRAY_BUFFER, this._clipQuad);
     const aPosition = program.attributes.aPosition;
@@ -352,7 +423,19 @@ _rmseOfFrames(frames) {
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     gl.bindTexture(gl.TEXTURE_3D, null);
 
-    let rmseImage = this._captureImageFromColorBuffer();
+    let width = frames[0].width;
+    let height = frames[0].height;
+
+    let pixels = new Uint8Array(width * height * 4);
+    this._gl.readPixels(0, 0, width, height, this._gl.RGBA, this._gl.UNSIGNED_BYTE, pixels);
+
+    let rmseImage = {
+        width: width,
+        height: height,
+        pixels: pixels
+    }
+
+    //this._renderTemporalFrame(rmseImage)
 
     let rmse = 0;
     let pi = 0;
